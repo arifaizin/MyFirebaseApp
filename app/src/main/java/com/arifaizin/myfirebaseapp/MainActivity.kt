@@ -1,9 +1,11 @@
 package com.arifaizin.myfirebaseapp
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : AppCompatActivity() {
 
@@ -19,7 +21,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == R.id.menu_signout) {
-
+            FirebaseAuth.getInstance().signOut()
+            startActivity(Intent(this, AuthActivity::class.java))
+            finish()
         }
         return true
     }
