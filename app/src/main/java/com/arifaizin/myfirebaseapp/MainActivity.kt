@@ -2,10 +2,18 @@ package com.arifaizin.myfirebaseapp
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
+import android.view.*
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
+import com.firebase.ui.database.FirebaseRecyclerAdapter
+import com.firebase.ui.database.FirebaseRecyclerOptions
+import com.github.curioustechizen.ago.RelativeTimeTextView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
@@ -15,6 +23,7 @@ import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var adapter: FirebaseRecyclerAdapter<ChatModel, ChatHolder>
     private lateinit var database: DatabaseReference
 
     companion object {
@@ -50,6 +59,87 @@ class MainActivity : AppCompatActivity() {
                     }
             }
         }
+
+        // TODO 4 : Firebase UI
+        showMessages(name)
+    }
+
+    private fun showMessages(name: String?) {
+        val query = database
+            .child(MESSAGES_CHILD)
+            .limitToLast(50)
+
+        val options = FirebaseRecyclerOptions.Builder<ChatModel>()
+            .setQuery(query, ChatModel::class.java)
+            .build()
+
+        adapter = object : FirebaseRecyclerAdapter<ChatModel, ChatHolder>(options) {
+            private val MSG_TYPE_LEFT = 0
+            private val MSG_TYPE_RIGHT = 1
+
+            override fun getItemViewType(position: Int): Int {
+                val itemName = getItem(position).name
+                return if (itemName != null && itemName == name) {
+                    MSG_TYPE_RIGHT
+                } else {
+                    MSG_TYPE_LEFT
+                }
+            }
+
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatHolder {
+                return if (viewType == MSG_TYPE_RIGHT) {
+                    val view = LayoutInflater.from(parent.context).inflate(R.layout.item_chat_right, parent, false)
+                    ChatHolder(view)
+                } else {
+                    val view = LayoutInflater.from(parent.context).inflate(R.layout.item_chat_left, parent, false)
+                    ChatHolder(view)
+                }
+            }
+
+            override fun onBindViewHolder(
+                holder: ChatHolder,
+                position: Int,
+                model: ChatModel
+            ) {
+                if (model.text != null) {
+
+                    holder.messageTextView.text = model.text
+                    holder.messengerTextView.text = model.name
+                    holder.timestamp.setReferenceTime(model.timestamp as Long)
+
+                    if (model.photoUrl != null) {
+                        Glide.with(this@MainActivity)
+                            .load(model.photoUrl)
+                            .apply(RequestOptions.circleCropTransform())
+                            .error(R.drawable.ic_account_round)
+                            .into(holder.messengerImageView)
+                    }
+
+                } else {
+                    Toast.makeText(this@MainActivity, "Tidak ada data", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        messageRecyclerView.adapter = adapter
+        messageRecyclerView.layoutManager = LinearLayoutManager(this)
+    }
+
+    class ChatHolder(v: View) : RecyclerView.ViewHolder(v) {
+        var messageTextView: TextView = itemView.findViewById(R.id.messageTextView)
+        var messengerTextView: TextView = itemView.findViewById(R.id.messengerTextView)
+        var messengerImageView: ImageView = itemView.findViewById(R.id.messengerImageView)
+        var timestamp: RelativeTimeTextView = itemView.findViewById(R.id.timestamp)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        adapter.startListening()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        adapter.stopListening()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
