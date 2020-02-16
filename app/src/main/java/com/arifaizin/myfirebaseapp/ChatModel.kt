@@ -1,8 +1,8 @@
 package com.arifaizin.myfirebaseapp
 
 data class ChatModel (
-    val text: String,
-    val name: String,
-    val photoUrl: String,
-    val timestamp: Long
+    var text: String = "",
+    var name: String = "",
+    var photoUrl: String = "",
+    var timestamp: Long = 0
 )
