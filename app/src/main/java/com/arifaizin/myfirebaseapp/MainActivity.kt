@@ -2,6 +2,7 @@ package com.arifaizin.myfirebaseapp
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import android.widget.ImageView
 import android.widget.TextView
@@ -18,6 +19,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.android.synthetic.main.activity_main.*
+import okhttp3.*
+import java.io.IOException
 import java.util.*
 
 
@@ -28,6 +31,8 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val MESSAGES_CHILD = "message"
+        private val TAG = MainActivity::class.java.simpleName
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,6 +62,7 @@ class MainActivity : AppCompatActivity() {
                         Toast.makeText(this@MainActivity, "Gagal Terkirim.", Toast.LENGTH_SHORT)
                             .show()
                     }
+                sendNotif(name.toString(), message)
             }
         }
 
@@ -130,6 +136,30 @@ class MainActivity : AppCompatActivity() {
         var messengerTextView: TextView = itemView.findViewById(R.id.messengerTextView)
         var messengerImageView: ImageView = itemView.findViewById(R.id.messengerImageView)
         var timestamp: RelativeTimeTextView = itemView.findViewById(R.id.timestamp)
+    }
+
+    private fun sendNotif(mUsername: String, pesan: String) {
+        val client = OkHttpClient()
+        val body = FormBody.Builder()
+            .add("Sender", mUsername)
+            .add("Message", pesan)
+            .build()
+
+        val request = Request.Builder()
+            .url("https://firebasefcm.000webhostapp.com/firebasefcm/push_notification.php")
+            .post(body)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e(TAG, "onFailure: Gagal Push Notif ", e)
+            }
+
+            @Throws(IOException::class)
+            override fun onResponse(call: Call, response: Response) {
+                Log.d(TAG, "onResponse: Berhasil Push Notif$response")
+            }
+        })
     }
 
     override fun onStart() {

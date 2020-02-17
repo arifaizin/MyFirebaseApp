@@ -10,6 +10,10 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import okhttp3.FormBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.IOException
 
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
@@ -23,6 +27,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         if (remoteMessage.data.isNotEmpty()) {
             Log.d(TAG, "Message data payload: " + remoteMessage.data)
+            sendNotification(remoteMessage)
         }
 
         // Check if message contains a notification payload.
@@ -33,6 +38,31 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         }
     }
+
+    private fun sendNotification(messageBody: RemoteMessage) {
+        val channelId = "21"
+        val channelName = "ChatNotification"
+        val intent = Intent(this, MainActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent,
+            PendingIntent.FLAG_ONE_SHOT)
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Pesan dari "+messageBody.data.get("sender"))
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentText(messageBody.data.get("message"))
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+        val mNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_DEFAULT)
+            notificationBuilder.setChannelId(channelId)
+            mNotificationManager.createNotificationChannel(channel)
+        }
+        val notification = notificationBuilder.build()
+        mNotificationManager.notify(0, notification)
+    }
+
 
     private fun sendNotification(messageBody: String?) {
         val channelId = "21"
@@ -64,6 +94,21 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun sendRegistrationToServer(token: String?) {
+        val client = OkHttpClient()
+        val body = FormBody.Builder()
+            .add("Token", token)
+            .build()
+
+        val request = Request.Builder()
+            .url("https://firebasefcm.000webhostapp.com/firebasefcm/register.php")
+            .post(body)
+            .build()
+
+        try {
+            client.newCall(request).execute()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
 
     }
 }
